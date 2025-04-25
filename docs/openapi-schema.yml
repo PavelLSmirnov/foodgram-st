@@ -3,6 +3,25 @@ info:
   title: 'Foodgram'
   version: ''
 paths:
+  /api/rec/{id}/:
+    get:
+      operationId: Короткая ссылка для рецепров
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: "Уникальный идентификатор рецепта."
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 'redirectng to api/recipes/{id}'
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+
   /api/users/:
     get:
       operationId: Список пользователей
@@ -1252,7 +1271,6 @@ components:
 
   securitySchemes:
     Token:
-      description: 'Авторизация по токену. <br>
-      Все запросы от имени пользователя должны выполняться с заголовком "Authorization: Token TOKENVALUE"'
+      description: 'Авторизация по токену. <br>      Все запросы от имени пользователя должны выполняться с заголовком "Authorization: Token TOKENVALUE"'
       type: http
       scheme: token
