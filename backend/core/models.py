@@ -30,8 +30,7 @@ class SiteUser(AbstractUser):
     )
     username = models.CharField(
         max_length=USER_USERNAME_MAX_LENGTH,
-        blank=True,
-        null=True,
+        unique=True,
         verbose_name='Никнейм',
     )
     first_name = models.CharField(

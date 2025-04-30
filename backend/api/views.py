@@ -18,7 +18,7 @@ from .serializers import (IngredientSerializer, RecipeSerializer,
 from .permissions import IsAuthorOrReadOnly
 
 from .get_shopping_cart_text import get_shopping_cart_text
-
+from .pagination import RecipePagination
 
 User = get_user_model()
 
@@ -40,24 +40,30 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = [IsAuthorOrReadOnly]
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    pagination_class = RecipePagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        user = self.request.user
+
+        # Фильтрация по автору
+        author_id = self.request.query_params.get('author')
+        if author_id:
+            queryset = queryset.filter(author__id=author_id)
 
         # Фильтрация по корзине покупок
         if self.request.query_params.get('is_in_shopping_cart') == '1':
-            user = self.request.user
             if user.is_authenticated:
                 queryset = queryset.filter(shopcarts__user=user)
 
         # Фильтрация по избранному
         if self.request.query_params.get('is_favorited') == '1':
-            user = self.request.user
             if user.is_authenticated:
                 queryset = queryset.filter(favorites__user=user)
 
-        return queryset.distinct()
+        return queryset.order_by('-pub_date').distinct()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

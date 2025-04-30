@@ -80,33 +80,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),
-        'USER': os.getenv('POSTGRES_USER'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
-}
-LOGGING = {
-    'version': 1,
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        }
-    },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'filters': ['require_debug_true'],
-            'class': 'logging.StreamHandler',
-        }
-    },
-    'loggers': {
-        'django.db.backends': {
-            'level': 'DEBUG',
-            'handlers': ['console'],
-        }
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('POSTGRES_DB', BASE_DIR / 'db.sqlite3'),
+        'USER': os.getenv('POSTGRES_USER', None),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', None),
+        'HOST': os.getenv('DB_HOST', None),
+        'PORT': os.getenv('DB_PORT', None),
     }
 }
 
@@ -142,7 +121,7 @@ USE_TZ = True
 USE_L10N = True
 
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.RecipePagination',
     'PAGE_SIZE': 6,
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly'],
@@ -151,9 +130,32 @@ REST_FRAMEWORK = {
     ),
 }
 
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
+
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'user': 'api.serializers.UserSerializer',
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny'],
+        'user': ['rest_framework.permissions.IsAuthenticated'],
+    },
+    'SERIALIZERS': {
+        'user': 'api.serializers.UserSerializer',  # /users/
+        'current_user': 'api.serializers.UserSerializer',  # /users/me/
+    },
 }
 
 STATIC_URL = '/api/static/'

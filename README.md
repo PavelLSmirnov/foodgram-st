@@ -41,13 +41,54 @@
    В директории `infra`:
 
    ```bash
-   docker compose up
+   docker compose up -d
    ```
 
 4. **Cоздание суперпольователя**
 
    ```bash
    docker compose exec backend python manage.py createsuperuser
+   ```
+
+# Запуск бекэнда в режиме разработки
+   1. **Перейти в папку backend**
+
+   ```bash
+      cd backend
+   ```
+
+   2. **Создать и активировать виртуальное окружение**
+
+   ```bash
+      python -m venv env
+      source env/bin/actiavate
+   ```
+   
+   3.  **Установить зависимости для python 3.13**
+   
+   ```bash
+      pip install -r reqirements.txt
+   ```
+
+   4. **Создать .env файл с параметрами**
+
+   ```env
+      SECRET_KEY=4f56bf4e-c037-4845-9c3f-eb4181395f3c
+      DEBUG=True
+      ALLOWED_HOSTS=localhost,127.0.0.1,backend,frontend
+      # параметры POSTGRES и DB не указываются для работы с sqlite3 
+   ```
+
+   5. **Запустить миграции**
+
+   ```bash
+      python manage.py migrate
+   ```
+
+   6. **Запуск сервера разработки**
+
+   ```bash
+      python manage.py runserver
    ```
 
 ## Доступ к приложению
