@@ -190,16 +190,13 @@ class UserViewSet(DjoserUserViewSet):
             })
 
         if request.method == 'POST':
-            # Передаем данные в сериализатор
             serializer = SubscriptionSerializer(
                 data={'user': user.id, 'author': author.id},
                 context={'request': request}
             )
 
-            # Сериализатор сам выполнит валидацию
             serializer.is_valid(raise_exception=True)
 
-            # Если валидация прошла, сохраняем подписку
             subscription = serializer.save()
             return Response(
                 {'status': 'Подписка успешно добавлена'},

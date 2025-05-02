@@ -12,6 +12,7 @@ from .constants import (AVATAR_UPLOAD_PATH,
                         RECIPE_NAME_MAX_LENGTH, USER_EMAIL_MAX_LENGTH,
                         USER_FIRST_NAME_MAX_LENGTH, USER_LAST_NAME_MAX_LENGTH,
                         USER_USERNAME_MAX_LENGTH)
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class SiteUser(AbstractUser):
@@ -32,6 +33,7 @@ class SiteUser(AbstractUser):
         max_length=USER_USERNAME_MAX_LENGTH,
         unique=True,
         verbose_name='Никнейм',
+        validators=[UnicodeUsernameValidator()]
     )
     first_name = models.CharField(
         max_length=USER_FIRST_NAME_MAX_LENGTH,

@@ -148,6 +148,7 @@ LOGGING = {
 DJOSER = {
     'LOGIN_FIELD': 'email',
     'user': 'api.serializers.UserSerializer',
+    'user_create': 'api.serializers.UserSerializer',
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
         'user': ['rest_framework.permissions.IsAuthenticated'],
