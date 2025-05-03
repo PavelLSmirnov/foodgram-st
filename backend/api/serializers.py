@@ -189,23 +189,27 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-
-        if 'image' in representation and representation['image']:
+        img_path = representation['image']
+        if 'image' in representation and img_path:
             request = self.context.get('request')
             if request:
-                representation['image'] = request.build_absolute_uri(
-                    representation['image'])
+                representation['image'] = request.build_absolute_uri(img_path)
             else:
-                representation['image'] = f"{MEDIA_URL}{representation['image']}"
+                representation['image'] = f"{MEDIA_URL}{img_path}"
 
         if self.context.get('request').method in ['POST', 'PUT', 'PATCH']:
+            image_url = None
+
+            if instance.image:
+                image_url = request.build_absolute_uri(instance.image.url)
+
             return {
                 "ingredients": IngredientInRecipeSerializer(
                     instance.recipe_ingredients.all(),
                     many=True,
                     context=self.context
                 ).data,
-                "image": request.build_absolute_uri(instance.image.url) if instance.image else None,
+                "image": image_url,
                 "name": instance.name,
                 "text": instance.text,
                 "cooking_time": instance.cooking_time
