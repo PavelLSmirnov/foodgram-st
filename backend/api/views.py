@@ -31,6 +31,12 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     pagination_class = None
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except Http404:
+            raise NotFound(detail="Страница не найдена.")
+
     def get_queryset(self):
         queryset = Ingredient.objects.all().order_by('name')
         name = self.request.query_params.get('name')
@@ -45,6 +51,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     pagination_class = RecipePagination
+
+    def get_object(self):
+        try:
+            return super().get_object()
+        except Http404:
+            raise NotFound(detail="Страница не найдена.")
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -95,11 +107,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
+        try:
+            Recipe.objects.get(pk=pk)
+        except Recipe.DoesNotExist:
+            raise NotFound(detail="Страница не найдена.")
+
         return self.handle_favorite_or_cart(
             request, ShopCart, ShopCartSerializer, pk)
 
     @action(detail=True, methods=['post', 'delete'])
     def favorite(self, request, pk=None):
+        try:
+            Recipe.objects.get(pk=pk)
+        except Recipe.DoesNotExist:
+            raise NotFound(detail="Страница не найдена.")
+
         return self.handle_favorite_or_cart(
             request, Favorite, FavoriteSerializer, pk)
 
@@ -190,9 +212,12 @@ class UserViewSet(DjoserUserViewSet):
             methods=['post', 'delete'],
             permission_classes=[permissions.IsAuthenticated])
     def subscribe(self, request, id=None):
-        user = request.user
-        author = get_object_or_404(User, id=id)
+        try:
+            author = get_object_or_404(User, id=id)
+        except Http404:
+            raise NotFound(detail="Страница не найдена.")
 
+        user = request.user
         if user == author:
             raise ValidationError({
                 'errors': 'Действие невозможно для самого себя'
@@ -212,13 +237,12 @@ class UserViewSet(DjoserUserViewSet):
                 status=status.HTTP_201_CREATED
             )
 
-        subscription = get_object_or_404(
-            Subscription,
-            user=user,
-            author=author
-        )
-        subscription.delete()
-        return Response(
-            {'status': 'Вы успешно отписались'},
-            status=status.HTTP_204_NO_CONTENT
-        )
+        try:
+            subscription = Subscription.objects.get(user=user, author=author)
+            subscription.delete()
+            return Response(
+                {'status': 'Вы успешно отписались'},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except Subscription.DoesNotExist:
+            raise NotFound(detail="Страница не найдена.")
