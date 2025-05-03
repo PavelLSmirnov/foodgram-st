@@ -9,7 +9,7 @@ from core.constants import (MAX_RECIPES_LIMIT,
                             RECIPE_INGREDIENT_AMOUNT_MAX_VALUE,
                             RECIPE_COOKING_TIME_MIN_VALUE,
                             RECIPE_COOKING_TIME_MAX_VALUE)
-
+from config.settings import MEDIA_URL
 User = get_user_model()
 
 
@@ -173,76 +173,6 @@ class IngredientInRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
-# class RecipeBaseSerializer(serializers.ModelSerializer):
-#     """Базовый сериализатор для рецептов."""
-#     author = UserSerializer(read_only=True)
-#     ingredients = IngredientInRecipeSerializer(
-#         source='recipe_ingredients',
-#         many=True
-#     )
-#     is_favorited = serializers.SerializerMethodField()
-#     is_in_shopping_cart = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = Recipe
-#         fields = ('id', 'author', 'ingredients', 'is_favorited',
-#                   'is_in_shopping_cart', 'name', 'image', 'text',
-#                   'cooking_time')
-
-
-# class RecipeReadSerializer(RecipeBaseSerializer):
-#     """Сериализатор для чтения рецептов."""
-#     pass
-
-
-# class RecipeWriteSerializer(RecipeBaseSerializer):
-#     """Сериализатор для создания/обновления рецептов."""
-#     image = Base64ImageField(required=True)
-#     cooking_time = serializers.IntegerField(
-#         min_value=RECIPE_COOKING_TIME_MIN_VALUE,
-#         max_value=RECIPE_COOKING_TIME_MAX_VALUE
-#     )
-
-#     def validate(self, data):
-#         ingredients = data.get('recipe_ingredients', [])
-#         if not ingredients:
-#             raise serializers.ValidationError(
-#                 "Должен быть хотя бы один ингредиент.")
-
-#         ingredient_ids = [
-#             ingredient['ingredient'].id for ingredient in ingredients]
-#         if len(set(ingredient_ids)) != len(ingredient_ids):
-#             raise serializers.ValidationError(
-#                 "Дублирование ингредиентов не допускается.")
-
-#         if not data.get('image'):
-#             raise serializers.ValidationError(
-#                 "Поле 'image' не может быть пустым.")
-
-#         return data
-
-#     def create_ingredients(self, recipe, ingredients_data):
-#         RecipeIngredient.objects.bulk_create(
-#             RecipeIngredient(
-#                 recipe=recipe,
-#                 ingredient=ingredient['ingredient'],
-#                 amount=ingredient['amount']
-#             ) for ingredient in ingredients_data
-#         )
-
-#     def create(self, validated_data):
-#         ingredients_data = validated_data.pop('recipe_ingredients')
-#         recipe = super().create(validated_data)
-#         self.create_ingredients(recipe, ingredients_data)
-#         return recipe
-
-#     def update(self, instance, validated_data):
-#         ingredients_data = validated_data.pop('recipe_ingredients', [])
-#         instance.recipe_ingredients.all().delete()
-#         self.create_ingredients(instance, ingredients_data)
-#         return super().update(instance, validated_data)
-
-
 class RecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientInRecipeSerializer(
         many=True,
@@ -258,19 +188,30 @@ class RecipeSerializer(serializers.ModelSerializer):
     )
 
     def to_representation(self, instance):
-        if self.context['request'].method in ['POST', 'PUT', 'PATCH']:
+        representation = super().to_representation(instance)
+
+        if 'image' in representation and representation['image']:
+            request = self.context.get('request')
+            if request:
+                representation['image'] = request.build_absolute_uri(
+                    representation['image'])
+            else:
+                representation['image'] = f"{MEDIA_URL}{representation['image']}"
+
+        if self.context.get('request').method in ['POST', 'PUT', 'PATCH']:
             return {
                 "ingredients": IngredientInRecipeSerializer(
                     instance.recipe_ingredients.all(),
                     many=True,
                     context=self.context
                 ).data,
-                "image": instance.image.url if instance.image else None,
+                "image": request.build_absolute_uri(instance.image.url) if instance.image else None,
                 "name": instance.name,
                 "text": instance.text,
                 "cooking_time": instance.cooking_time
             }
-        return super().to_representation(instance)
+
+        return representation
 
     class Meta:
         model = Recipe

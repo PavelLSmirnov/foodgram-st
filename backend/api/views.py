@@ -19,6 +19,8 @@ from .permissions import IsAuthorOrReadOnly
 
 from .get_shopping_cart_text import get_shopping_cart_text
 from .pagination import RecipePagination
+from django.http import Http404
+from rest_framework.exceptions import NotFound
 
 User = get_user_model()
 
@@ -48,17 +50,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         user = self.request.user
 
-        # Фильтрация по автору
         author_id = self.request.query_params.get('author')
         if author_id:
             queryset = queryset.filter(author__id=author_id)
 
-        # Фильтрация по корзине покупок
         if self.request.query_params.get('is_in_shopping_cart') == '1':
             if user.is_authenticated:
                 queryset = queryset.filter(shopcarts__user=user)
 
-        # Фильтрация по избранному
         if self.request.query_params.get('is_favorited') == '1':
             if user.is_authenticated:
                 queryset = queryset.filter(favorites__user=user)
@@ -146,11 +145,15 @@ class UserViewSet(DjoserUserViewSet):
                 user.avatar.delete()
                 user.avatar = None
                 user.save()
-                return Response(
-                    {'avatar': None}, status=status.HTTP_204_NO_CONTENT)
+                return Response(status=status.HTTP_204_NO_CONTENT)
             raise ValidationError({'error': 'Аватар отсутствует'})
 
-        serializer = AvatarSerializer(user, data=request.data, partial=True)
+        serializer = AvatarSerializer(
+            user,
+            context={'request': request},
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -160,6 +163,12 @@ class UserViewSet(DjoserUserViewSet):
         if self.action == "me":
             return self.request.user
         return super().get_object()
+
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            return super().retrieve(request, *args, **kwargs)
+        except Http404:
+            raise NotFound(detail="Страница не найдена.")
 
     @action(detail=False, methods=['get'],
             permission_classes=[permissions.IsAuthenticated])
