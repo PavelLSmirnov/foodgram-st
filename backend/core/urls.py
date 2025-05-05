@@ -4,5 +4,5 @@ from .views import short_link
 
 urlpatterns = [
     path(
-        'rec/<int:pk>', short_link, name='short_link'),
+        's/<int:pk>', short_link, name='short_link'),
 ]
