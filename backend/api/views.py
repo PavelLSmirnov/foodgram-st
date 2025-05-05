@@ -52,6 +52,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     pagination_class = RecipePagination
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=kwargs.pop('partial', False),
+            context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
     def get_object(self):
         try:
             return super().get_object()
@@ -197,17 +217,6 @@ class UserViewSet(DjoserUserViewSet):
     def me(self, request):
         return Response(self.get_serializer(request.user).data)
 
-    @action(detail=False, methods=['get'],
-            permission_classes=[permissions.IsAuthenticated])
-    def subscriptions(self, request):
-        subscriptions = Subscription.objects.filter(
-            user=request.user).select_related('author')
-        authors = [sub.author for sub in subscriptions]
-        page = self.paginate_queryset(authors)
-        serializer = SiteUserSerializer(page, many=True,
-                                        context={'request': request})
-        return self.get_paginated_response(serializer.data)
-
     @action(detail=True,
             methods=['post', 'delete'],
             permission_classes=[permissions.IsAuthenticated])
@@ -224,19 +233,31 @@ class UserViewSet(DjoserUserViewSet):
             })
 
         if request.method == 'POST':
+            # Проверяем, не подписаны ли уже
+            if Subscription.objects.filter(user=user, author=author).exists():
+                raise ValidationError({
+                    'errors': 'Вы уже подписаны на этого пользователя'
+                })
+
             serializer = SubscriptionSerializer(
                 data={'user': user.id, 'author': author.id},
                 context={'request': request}
             )
 
             serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-            subscription = serializer.save()
+            # Возвращаем данные автора через SiteUserSerializer
+            author_serializer = SiteUserSerializer(
+                author,
+                context={'request': request}
+            )
             return Response(
-                {'status': 'Подписка успешно добавлена'},
+                author_serializer.data,
                 status=status.HTTP_201_CREATED
             )
 
+        # Обработка DELETE запроса
         try:
             subscription = Subscription.objects.get(user=user, author=author)
             subscription.delete()

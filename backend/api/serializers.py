@@ -10,6 +10,9 @@ from core.constants import (MAX_RECIPES_LIMIT,
                             RECIPE_COOKING_TIME_MIN_VALUE,
                             RECIPE_COOKING_TIME_MAX_VALUE)
 from config.settings import MEDIA_URL
+import logging
+log = logging.getLogger()
+
 User = get_user_model()
 
 
@@ -75,11 +78,10 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        return {
-            'status': 'Подписка успешно добавлена',
-            'author': instance.author.username,
-            'user': instance.user.username
-        }
+        return SiteUserSerializer(
+            instance.author,
+            context=self.context
+        ).data
 
 
 class AvatarSerializer(serializers.ModelSerializer):
@@ -136,6 +138,9 @@ class SiteUserSerializer(UserSerializer):
             context=self.context
         ).data
 
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
 
 class RecipeShortSerializer(serializers.ModelSerializer):
     """Сокращенный сериализатор для рецептов (используется в подписках)."""
@@ -187,44 +192,38 @@ class RecipeSerializer(serializers.ModelSerializer):
         max_value=RECIPE_COOKING_TIME_MAX_VALUE
     )
 
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        img_path = representation['image']
-        if 'image' in representation and img_path:
-            request = self.context.get('request')
-            if request:
-                representation['image'] = request.build_absolute_uri(img_path)
-            else:
-                representation['image'] = f"{MEDIA_URL}{img_path}"
-
-        if self.context.get('request').method in ['POST', 'PUT', 'PATCH']:
-            image_url = None
-
-            if instance.image:
-                image_url = request.build_absolute_uri(instance.image.url)
-
-            return {
-                "ingredients": IngredientInRecipeSerializer(
-                    instance.recipe_ingredients.all(),
-                    many=True,
-                    context=self.context
-                ).data,
-                "image": image_url,
-                "name": instance.name,
-                "text": instance.text,
-                "cooking_time": instance.cooking_time
-            }
-
-        return representation
-
     class Meta:
         model = Recipe
         fields = ('id', 'author', 'ingredients', 'is_favorited',
                   'is_in_shopping_cart', 'name', 'image', 'text',
                   'cooking_time')
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+
+        # Для всех методов добавляем вычисление флагов
+        log.debug(instance)
+        representation['is_favorited'] = self.get_is_favorited(instance)
+        representation['is_in_shopping_cart'] = self.get_is_in_shopping_cart(
+            instance)
+
+        # Обработка изображения
+        if 'image' in representation and representation['image']:
+            if request:
+                representation['image'] = request.build_absolute_uri(
+                    representation['image']
+                )
+            else:
+                representation['image'] = f"{MEDIA_URL}{
+                    representation['image']}"
+
+        return representation
+
     def get_is_favorited(self, obj):
         request = self.context.get('request')
+        log.debug(type(obj))
+
         return (request and request.user.is_authenticated
                 and obj.favorites.filter(user=request.user).exists())
 
