@@ -10,8 +10,6 @@ from core.constants import (MAX_RECIPES_LIMIT,
                             RECIPE_COOKING_TIME_MIN_VALUE,
                             RECIPE_COOKING_TIME_MAX_VALUE)
 from config.settings import MEDIA_URL
-import logging
-log = logging.getLogger()
 
 User = get_user_model()
 
@@ -202,13 +200,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         request = self.context.get('request')
 
-        # Для всех методов добавляем вычисление флагов
-        log.debug(instance)
         representation['is_favorited'] = self.get_is_favorited(instance)
         representation['is_in_shopping_cart'] = self.get_is_in_shopping_cart(
             instance)
 
-        # Обработка изображения
         if 'image' in representation and representation['image']:
             if request:
                 representation['image'] = request.build_absolute_uri(
@@ -222,7 +217,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
-        log.debug(type(obj))
 
         return (request and request.user.is_authenticated
                 and obj.favorites.filter(user=request.user).exists())

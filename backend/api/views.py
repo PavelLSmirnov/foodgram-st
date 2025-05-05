@@ -233,7 +233,6 @@ class UserViewSet(DjoserUserViewSet):
             })
 
         if request.method == 'POST':
-            # Проверяем, не подписаны ли уже
             if Subscription.objects.filter(user=user, author=author).exists():
                 raise ValidationError({
                     'errors': 'Вы уже подписаны на этого пользователя'
@@ -247,7 +246,6 @@ class UserViewSet(DjoserUserViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-            # Возвращаем данные автора через SiteUserSerializer
             author_serializer = SiteUserSerializer(
                 author,
                 context={'request': request}
