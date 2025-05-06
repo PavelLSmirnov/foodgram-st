@@ -7,19 +7,19 @@ from config.settings import BASE_DIR
 
 def get_next_id(cursor, table_name):
     """Получаем следующий ID, который не вызовет конфликтов"""
-    cursor.execute(f"SELECT MAX(id) FROM {table_name}")
+    cursor.execute(f'SELECT MAX(id) FROM {table_name}')
     max_id = cursor.fetchone()[0] or 0
     return max_id + 1
 
 
 def load_ingredients(apps, schema_editor):
     Ingredient = apps.get_model('core', 'Ingredient')
-    
+
     csv_path = os.path.join(BASE_DIR, 'data', 'ingredients.csv')
-    
+
     with connection.cursor() as cursor:
         next_id = get_next_id(cursor, 'core_ingredient')
-        
+
         with open(csv_path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
             for row in reader:
@@ -32,7 +32,7 @@ def load_ingredients(apps, schema_editor):
                 # Если ингредиент с таким именем уже существует - пропускаем
                 if Ingredient.objects.filter(name=name).exists():
                     continue
-                
+
                 # Создаём с явным указанием ID, который гарантированно не конфликтует
                 Ingredient.objects.create(
                     id=next_id,

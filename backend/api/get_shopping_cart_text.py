@@ -5,20 +5,20 @@ User = get_user_model()
 
 
 def generate_shopping_list_header():
-    return f"Список покупок на {now().strftime('%d-%m-%Y %H:%M:%S')}\n"
+    return f'Список покупок на {now().strftime('%d-%m-%Y %H:%M:%S')}\n'
 
 
 def format_ingredient_line(index, ingredient):
     meas_unit = ingredient['ingredient__measurement_unit']
     total_amount = ingredient['total_amount']
     return (
-        f"{index}. {ingredient['ingredient__name'].capitalize()} "
-        f"({meas_unit}) - {total_amount}"
+        f'{index}. {ingredient['ingredient__name'].capitalize()} '
+        f'({meas_unit}) - {total_amount}'
     )
 
 
 def format_recipe_line(recipe):
-    return f"- {recipe.name} (@{recipe.author.username})"
+    return f'- {recipe.name} (@{recipe.author.username})'
 
 
 def get_shopping_cart_text(user, ingredients, recipes):

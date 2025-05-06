@@ -238,8 +238,8 @@ class RecipeSerializer(serializers.ModelSerializer):
                     representation['image']
                 )
             else:
-                representation['image'] = f"{MEDIA_URL}{
-                    representation['image']}"
+                representation['image'] = f'{MEDIA_URL}{
+                    representation['image']}'
 
         return representation
 
