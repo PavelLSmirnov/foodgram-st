@@ -48,12 +48,40 @@ class FavoriteSerializer(BaseActionSerializer):
         fields = ('user', 'recipe')
         read_only_fields = ('user',)
 
+    def to_representation(self, instance):
+        request = self.context.get('request')
+
+        img_url = None
+        if instance.recipe.image:
+            img_url = request.build_absolute_uri(instance.recipe.image.url)
+
+        return {
+            'id': instance.recipe.id,
+            'name': instance.recipe.name,
+            'image': img_url,
+            'cooking_time': instance.recipe.cooking_time
+        }
+
 
 class ShopCartSerializer(BaseActionSerializer):
     class Meta:
         model = ShopCart
         fields = ('user', 'recipe')
         read_only_fields = ('user',)
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+
+        img_url = None
+        if instance.recipe.image:
+            img_url = request.build_absolute_uri(instance.recipe.image.url)
+
+        return {
+            'id': instance.recipe.id,
+            'name': instance.recipe.name,
+            'image': img_url,
+            'cooking_time': instance.recipe.cooking_time
+        }
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):

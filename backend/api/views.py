@@ -123,7 +123,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return Response(
             {'status': 'Рецепт не найден'},
-            status=status.HTTP_404_NOT_FOUND)
+            status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post', 'delete'])
     def shopping_cart(self, request, pk=None):
@@ -217,6 +217,17 @@ class UserViewSet(DjoserUserViewSet):
     def me(self, request):
         return Response(self.get_serializer(request.user).data)
 
+    @action(detail=False, methods=['get'],
+            permission_classes=[permissions.IsAuthenticated])
+    def subscriptions(self, request):
+        subscriptions = Subscription.objects.filter(
+            user=request.user).select_related('author')
+        authors = [sub.author for sub in subscriptions]
+        page = self.paginate_queryset(authors)
+        serializer = SiteUserSerializer(page, many=True,
+                                        context={'request': request})
+        return self.get_paginated_response(serializer.data)
+
     @action(detail=True,
             methods=['post', 'delete'],
             permission_classes=[permissions.IsAuthenticated])
@@ -264,4 +275,5 @@ class UserViewSet(DjoserUserViewSet):
                 status=status.HTTP_204_NO_CONTENT
             )
         except Subscription.DoesNotExist:
-            raise NotFound(detail="Страница не найдена.")
+            return Response("Страница не найдена.",
+                            status.HTTP_400_BAD_REQUEST)
