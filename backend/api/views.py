@@ -21,6 +21,8 @@ from .get_shopping_cart_text import get_shopping_cart_text
 from .pagination import RecipePagination
 from django.http import Http404
 from rest_framework.exceptions import NotFound
+from api.filters import IngredientFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 User = get_user_model()
 
@@ -30,19 +32,11 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = None
+    filterset_class = IngredientFilter
+    filter_backends = (DjangoFilterBackend,)
+    search_fields = ("^name",)
 
-    def get_object(self):
-        try:
-            return super().get_object()
-        except Http404:
-            raise NotFound(detail="Страница не найдена.")
 
-    def get_queryset(self):
-        queryset = Ingredient.objects.all().order_by('name')
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
 
 
 class RecipeViewSet(viewsets.ModelViewSet):

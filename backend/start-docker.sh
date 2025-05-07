@@ -23,6 +23,8 @@ echo "PostgreSQL готов"
 echo ", выполнение миграций..."
 python manage.py migrate --noinput
 
+python manage.py loaddata data/test_data.json
+
 echo "Запуск Gunicorn"
 # python manage.py runserver
 gunicorn --bind 0.0.0.0:8000 config.wsgi --log-level "debug" --enable-stdio-inheritance
